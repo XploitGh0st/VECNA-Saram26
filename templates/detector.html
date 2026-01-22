@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VECNA - Spoilage Detector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: none;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.8;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 1000px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card h2 {
+            color: #a8c8e8;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Input Section */
+        .input-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            background: transparent;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1em;
+        }
+
+        .tab-btn:hover {
+            border-color: #667eea;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Upload Area */
+        .upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.2);
+        }
+
+        .upload-area input {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        /* Webcam */
+        .webcam-container {
+            position: relative;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        #webcam {
+            width: 100%;
+            display: block;
+        }
+
+        .webcam-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        /* Preview */
+        .preview-container {
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preview-container img {
+            max-width: 100%;
+            max-height: 500px;
+        }
+
+        .preview-placeholder {
+            color: rgba(255, 255, 255, 0.5);
+            text-align: center;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 28px;
+            font-size: 1em;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Results */
+        .result-panel {
+            display: none;
+        }
+
+        .result-panel.visible {
+            display: block;
+        }
+
+        .result-status {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .result-status.fresh {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+
+        .result-status.spoiled {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+        }
+
+        .result-status.warning {
+            background: rgba(255, 165, 0, 0.1);
+            border: 1px solid rgba(255, 165, 0, 0.3);
+        }
+
+        .status-icon {
+            font-size: 3em;
+        }
+
+        .status-text h3 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .status-text p {
+            opacity: 0.8;
+        }
+
+        .result-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .detail-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .detail-item label {
+            display: block;
+            font-size: 0.85em;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 5px;
+        }
+
+        .detail-item span {
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        .color-readings {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .color-readings h4 {
+            margin-bottom: 10px;
+            color: #a8c8e8;
+        }
+
+        .color-bar {
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex;
+            margin-bottom: 10px;
+        }
+
+        .color-fresh {
+            background: linear-gradient(90deg, #e0e0e0, #f5f5f5);
+        }
+
+        .color-spoiled {
+            background: linear-gradient(90deg, #c4a574, #8b6914);
+        }
+
+        /* Error */
+        .error-message {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-message.visible {
+            display: block;
+        }
+
+        /* Spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 15px;
+            border-radius: 12px;
+        }
+
+        .loading-overlay.visible {
+            display: flex;
+        }
+
+        .instructions {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .instructions h4 {
+            margin-bottom: 10px;
+            color: #a8c8e8;
+        }
+
+        .instructions ul {
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 VECNA Spoilage Detector</h1>
+            <p>Analyze chicken package labels to detect spoilage levels</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Input Section -->
+            <div class="card">
+                <h2>📷 Image Input</h2>
+
+                <div class="input-tabs">
+                    <button class="tab-btn active" onclick="switchTab('upload')">📁 Upload Image</button>
+                    <button class="tab-btn" onclick="switchTab('webcam')">📹 Use Webcam</button>
+                </div>
+
+                <!-- Upload Tab -->
+                <div id="upload-tab" class="tab-content active">
+                    <div class="upload-area" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                        <input type="file" id="fileInput" accept="image/*">
+                        <div class="upload-icon">📤</div>
+                        <p>Click to upload or drag & drop an image</p>
+                        <small style="opacity: 0.6;">Supports JPG, PNG, WEBP</small>
+                    </div>
+
+                    <div class="preview-container" id="uploadPreview">
+                        <div class="preview-placeholder">
+                            <p>📷 Image preview will appear here</p>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" id="analyzeUploadBtn" onclick="analyzeUploadedImage()" disabled style="margin-top: 20px;">
+                        🔍 Analyze Image
+                    </button>
+                </div>
+
+                <!-- Webcam Tab -->
+                <div id="webcam-tab" class="tab-content">
+                    <div class="webcam-container">
+                        <video id="webcam" autoplay playsinline></video>
+                        <div class="loading-overlay" id="webcamLoading">
+                            <div class="spinner"></div>
+                            <p>Starting camera...</p>
+                        </div>
+                    </div>
+
+                    <div class="webcam-controls">
+                        <button class="btn btn-secondary" onclick="startWebcam()">📹 Start Camera</button>
+                        <button class="btn btn-primary" id="captureBtn" onclick="captureAndAnalyze()" disabled>📸 Capture & Analyze</button>
+                    </div>
+                </div>
+
+                <div class="instructions">
+                    <h4>📋 Instructions</h4>
+                    <ul>
+                        <li>Ensure the VECNA label is clearly visible</li>
+                        <li>The ArUco marker (black square pattern) must be in frame</li>
+                        <li>Good lighting improves detection accuracy</li>
+                        <li>The indicator strip should be fully visible</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="card">
+                <h2>📊 Detection Results</h2>
+
+                <div class="error-message" id="errorMessage"></div>
+
+                <div class="preview-container" id="resultPreview" style="position: relative;">
+                    <div class="preview-placeholder">
+                        <p>🔍 Results will appear here after analysis</p>
+                    </div>
+                    <div class="loading-overlay" id="analysisLoading">
+                        <div class="spinner" style="width: 40px; height: 40px;"></div>
+                        <p>Analyzing image...</p>
+                    </div>
+                </div>
+
+                <div class="result-panel" id="resultPanel">
+                    <div class="result-status" id="resultStatus">
+                        <div class="status-icon" id="statusIcon">✅</div>
+                        <div class="status-text">
+                            <h3 id="statusTitle">FRESH</h3>
+                            <p id="statusRecommendation">Product is safe for consumption</p>
+                        </div>
+                    </div>
+
+                    <div class="result-details">
+                        <div class="detail-item">
+                            <label>Package ID</label>
+                            <span id="resultPackageId">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Product Type</label>
+                            <span id="resultProductType">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Spoilage Level</label>
+                            <span id="resultSpoilageLevel">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Confidence</label>
+                            <span id="resultConfidence">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Batch ID</label>
+                            <span id="resultBatchId">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Verified By</label>
+                            <span id="resultVerifiedBy">-</span>
+                        </div>
+                    </div>
+
+                    <div class="color-readings">
+                        <h4>Color Analysis</h4>
+                        <div class="color-bar">
+                            <div class="color-fresh" id="freshBar" style="width: 100%;"></div>
+                            <div class="color-spoiled" id="spoiledBar" style="width: 0%;"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.9em; opacity: 0.7;">
+                            <span>Fresh: <span id="freshPercent">0</span>%</span>
+                            <span>Spoiled: <span id="spoiledPercent">0</span>%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentImage = null;
+        let webcamStream = null;
+
+        // Tab switching
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
+            document.getElementById(`${tab}-tab`).classList.add('active');
+
+            if (tab === 'webcam') {
+                startWebcam();
+            } else {
+                stopWebcam();
+            }
+        }
+
+        // File upload handling
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleFile(file);
+            }
+        });
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentImage = e.target.result;
+                document.getElementById('uploadPreview').innerHTML = `<img src="${currentImage}" alt="Preview">`;
+                document.getElementById('analyzeUploadBtn').disabled = false;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Webcam functions
+        async function startWebcam() {
+            const video = document.getElementById('webcam');
+            const loading = document.getElementById('webcamLoading');
+            
+            loading.classList.add('visible');
+
+            try {
+                webcamStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment', width: 1280, height: 720 } 
+                });
+                video.srcObject = webcamStream;
+                document.getElementById('captureBtn').disabled = false;
+                loading.classList.remove('visible');
+            } catch (err) {
+                console.error('Webcam error:', err);
+                loading.innerHTML = '<p>❌ Could not access camera</p>';
+            }
+        }
+
+        function stopWebcam() {
+            if (webcamStream) {
+                webcamStream.getTracks().forEach(track => track.stop());
+                webcamStream = null;
+            }
+        }
+
+        function captureAndAnalyze() {
+            const video = document.getElementById('webcam');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            currentImage = canvas.toDataURL('image/jpeg');
+            analyzeImage(currentImage);
+        }
+
+        // Analyze uploaded image
+        function analyzeUploadedImage() {
+            if (currentImage) {
+                analyzeImage(currentImage);
+            }
+        }
+
+        // Main analysis function
+        async function analyzeImage(imageData) {
+            const loading = document.getElementById('analysisLoading');
+            const errorEl = document.getElementById('errorMessage');
+            const resultPanel = document.getElementById('resultPanel');
+
+            loading.classList.add('visible');
+            errorEl.classList.remove('visible');
+            resultPanel.classList.remove('visible');
+
+            try {
+                const response = await fetch('/api/detect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: imageData })
+                });
+
+                const data = await response.json();
+
+                if (data.result_image) {
+                    document.getElementById('resultPreview').innerHTML = `
+                        <img src="${data.result_image}" alt="Result">
+                        <div class="loading-overlay" id="analysisLoading"></div>
+                    `;
+                }
+
+                if (data.success) {
+                    displayResults(data.result);
+                } else {
+                    errorEl.textContent = '⚠️ ' + data.error;
+                    errorEl.classList.add('visible');
+                }
+            } catch (err) {
+                errorEl.textContent = '❌ Error: ' + err.message;
+                errorEl.classList.add('visible');
+            } finally {
+                loading.classList.remove('visible');
+            }
+        }
+
+        function displayResults(result) {
+            const resultPanel = document.getElementById('resultPanel');
+            const statusEl = document.getElementById('resultStatus');
+            const iconEl = document.getElementById('statusIcon');
+            const titleEl = document.getElementById('statusTitle');
+            const recEl = document.getElementById('statusRecommendation');
+
+            // Update status
+            statusEl.className = 'result-status';
+            if (result.is_safe) {
+                if (result.spoilage_level === 'FRESH') {
+                    statusEl.classList.add('fresh');
+                    iconEl.textContent = '✅';
+                } else {
+                    statusEl.classList.add('warning');
+                    iconEl.textContent = '⚠️';
+                }
+            } else {
+                statusEl.classList.add('spoiled');
+                iconEl.textContent = '❌';
+            }
+
+            titleEl.textContent = result.spoilage_level;
+            recEl.textContent = result.recommendation;
+
+            // Update details
+            document.getElementById('resultPackageId').textContent = result.package_id;
+            document.getElementById('resultProductType').textContent = result.product_type;
+            document.getElementById('resultSpoilageLevel').textContent = result.spoilage_level;
+            document.getElementById('resultConfidence').textContent = result.confidence.toFixed(1) + '%';
+            document.getElementById('resultBatchId').textContent = result.batch_id;
+            
+            // Show verification source
+            const qrVerified = result.color_readings.qr_verified;
+            document.getElementById('resultVerifiedBy').innerHTML = qrVerified 
+                ? '📊 Strip Color Analysis' 
+                : '📊 Strip Color Analysis';
+
+            // Update color bar
+            const freshPct = result.color_readings.fresh_percent || 0;
+            const spoiledPct = result.color_readings.spoiled_percent || 0;
+            document.getElementById('freshBar').style.width = freshPct + '%';
+            document.getElementById('spoiledBar').style.width = spoiledPct + '%';
+            document.getElementById('freshPercent').textContent = freshPct.toFixed(1);
+            document.getElementById('spoiledPercent').textContent = spoiledPct.toFixed(1);
+
+            resultPanel.classList.add('visible');
+        }
+    </script>
+</body>
+</html>

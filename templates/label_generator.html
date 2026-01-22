@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VECNA - Label Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: #2c5282;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 28px;
+            font-size: 1em;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
+        .btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Label Preview */
+        .preview-container {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .label-preview {
+            width: 320px;
+            height: 200px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .label-header {
+            background: linear-gradient(135deg, #a8c8e8 0%, #87b5db 100%);
+            height: 50px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+        }
+
+        .label-header::after {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: white;
+            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+        }
+
+        .bird-icon {
+            width: 30px;
+            height: 30px;
+            background: #4a7ab0;
+            border-radius: 50%;
+            position: relative;
+            z-index: 1;
+        }
+
+        .label-title {
+            color: #2c5282;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-left: 10px;
+            z-index: 1;
+        }
+
+        .label-body {
+            padding: 20px 15px 15px;
+            position: relative;
+        }
+
+        .spoilage-header {
+            color: #4a6fa5;
+            font-size: 0.7em;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .indicator-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .aruco-code {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border: 2px solid black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .aruco-code::before {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: 
+                linear-gradient(to right, black 25%, transparent 25%, transparent 75%, black 75%),
+                linear-gradient(to bottom, black 25%, transparent 25%, transparent 75%, black 75%);
+            background-size: 10px 10px;
+        }
+
+        .aruco-code::after {
+            content: 'ArUco';
+            font-size: 6px;
+            position: absolute;
+            bottom: -12px;
+            color: #666;
+        }
+
+        .qr-code {
+            width: 35px;
+            height: 35px;
+            background: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 6px;
+        }
+
+        .indicator-bar {
+            flex: 1;
+            height: 40px;
+            border: 2px solid #4a6fa5;
+            border-radius: 5px;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .fresh-zone {
+            flex: 0.7;
+            background: #f5f5f5;
+        }
+
+        .transition-zone {
+            flex: 0.15;
+            background: #c4a574;
+        }
+
+        .spoiled-zone {
+            flex: 0.15;
+            background: #8b6914;
+        }
+
+        .indicator-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 0.65em;
+            font-weight: bold;
+        }
+
+        .fresh-label {
+            color: #666;
+        }
+
+        .spoiled-label {
+            color: #8b4513;
+        }
+
+        .label-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 10px;
+        }
+
+        .package-info {
+            font-size: 0.6em;
+            color: #888;
+        }
+
+        .small-qr {
+            width: 25px;
+            height: 25px;
+            background: #333;
+        }
+
+        .label-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 15px;
+        }
+
+        /* Status Messages */
+        .status-message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .status-success {
+            background: #c6f6d5;
+            color: #22543d;
+            display: block;
+        }
+
+        .status-error {
+            background: #fed7d7;
+            color: #822727;
+            display: block;
+        }
+
+        .status-loading {
+            background: #bee3f8;
+            color: #2a4365;
+            display: block;
+        }
+
+        /* Download Link */
+        .download-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .download-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .quick-btn {
+            padding: 10px;
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .quick-btn:hover {
+            border-color: #667eea;
+            background: #ebf4ff;
+        }
+
+        .quick-btn span {
+            display: block;
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .info-text {
+            font-size: 0.85em;
+            color: #718096;
+            margin-top: 15px;
+            padding: 10px;
+            background: #f7fafc;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🐔 VECNA Label Generator</h1>
+            <p>Generate Spoilage Indicator Labels for Chicken Packages</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Form Section -->
+            <div class="card">
+                <h2>📋 Label Configuration</h2>
+
+                <div class="quick-actions">
+                    <div class="quick-btn" onclick="setQuickLabels(8)">
+                        <span>📦</span>
+                        <small>8 Labels</small>
+                    </div>
+                    <div class="quick-btn" onclick="setQuickLabels(16)">
+                        <span>📦📦</span>
+                        <small>16 Labels</small>
+                    </div>
+                    <div class="quick-btn" onclick="setQuickLabels(32)">
+                        <span>🏭</span>
+                        <small>32 Labels</small>
+                    </div>
+                </div>
+
+                <form id="labelForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="numLabels">Number of Labels</label>
+                            <input type="number" id="numLabels" name="numLabels" value="8" min="1" max="100">
+                        </div>
+                        <div class="form-group">
+                            <label for="productType">Product Type</label>
+                            <select id="productType" name="productType">
+                                <option value="Chicken Breast">Chicken Breast</option>
+                                <option value="Chicken Thighs">Chicken Thighs</option>
+                                <option value="Chicken Wings">Chicken Wings</option>
+                                <option value="Whole Chicken">Whole Chicken</option>
+                                <option value="Ground Chicken">Ground Chicken</option>
+                                <option value="Chicken Drumsticks">Chicken Drumsticks</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="batchId">Batch ID</label>
+                            <input type="text" id="batchId" name="batchId" placeholder="Auto-generated if empty">
+                        </div>
+                        <div class="form-group">
+                            <label for="packDate">Pack Date</label>
+                            <input type="date" id="packDate" name="packDate">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="facilityCode">Facility Code (Optional)</label>
+                            <input type="text" id="facilityCode" name="facilityCode" placeholder="e.g., FAC-CHN-001">
+                        </div>
+                        <div class="form-group">
+                            <label for="isSpoiled">Spoilage Status</label>
+                            <select id="isSpoiled" name="isSpoiled">
+                                <option value="false" selected>🟢 Fresh (Not Spoiled)</option>
+                                <option value="true">🔴 Spoiled</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="generateBtn">
+                        <span>🏷️</span> Generate Labels PDF
+                    </button>
+
+                    <button type="button" class="btn btn-secondary" onclick="previewLabel()">
+                        <span>👁️</span> Preview Single Label
+                    </button>
+
+                    <div id="statusMessage" class="status-message"></div>
+
+                    <div class="info-text">
+                        <strong>💡 Tip:</strong> Labels are generated in A4 format with 8 labels per page. 
+                        Each label includes a unique QR code for tracking and a visual spoilage indicator.
+                    </div>
+                </form>
+            </div>
+
+            <!-- Preview Section -->
+            <div class="card">
+                <h2>👁️ Label Preview</h2>
+
+                <div class="preview-container">
+                    <div class="label-preview">
+                        <div class="label-header">
+                            <div class="bird-icon"></div>
+                            <span class="label-title">PROJECT VECNA</span>
+                        </div>
+                        <div class="label-body">
+                            <div class="spoilage-header">SPOILAGE INDICATOR</div>
+                            <div class="indicator-container">
+                                <div class="aruco-code"></div>
+                                <div style="flex: 1;">
+                                    <div class="indicator-bar">
+                                        <div class="fresh-zone"></div>
+                                        <div class="transition-zone"></div>
+                                        <div class="spoiled-zone"></div>
+                                    </div>
+                                    <div class="indicator-labels">
+                                        <span class="fresh-label">FRESH</span>
+                                        <span class="spoiled-label">SPOILED</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="label-footer">
+                                <div class="package-info">
+                                    <div id="previewPackageId">ID: PKG-XXXXXXXX</div>
+                                    <div id="previewBatchId">Batch: BATCH-YYYYMMDD</div>
+                                    <div id="previewArucoId">ArUco: 123</div>
+                                </div>
+                                <div class="qr-code">QR</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; text-align: center;">
+                    <h3 style="color: #4a5568; margin-bottom: 15px;">How it works</h3>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center;">
+                        <div>
+                            <div style="font-size: 2em;">📱</div>
+                            <small>Scan QR code with camera detector app</small>
+                        </div>
+                        <div>
+                            <div style="font-size: 2em;">🔍</div>
+                            <small>Camera analyzes spoilage indicator color</small>
+                        </div>
+                        <div>
+                            <div style="font-size: 2em;">✅</div>
+                            <small>Get instant freshness status</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set today's date as default
+        document.getElementById('packDate').valueAsDate = new Date();
+
+        // Generate batch ID if empty
+        function generateBatchId() {
+            const date = new Date();
+            return `BATCH-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        // Quick label presets
+        function setQuickLabels(num) {
+            document.getElementById('numLabels').value = num;
+        }
+
+        // Update preview
+        function updatePreview() {
+            const batchId = document.getElementById('batchId').value || generateBatchId();
+            document.getElementById('previewPackageId').textContent = `ID: PKG-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
+            document.getElementById('previewBatchId').textContent = `Batch: ${batchId}`;
+        }
+
+        // Preview label
+        async function previewLabel() {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.className = 'status-message status-loading';
+            statusEl.innerHTML = '<span class="spinner"></span> Generating preview...';
+
+            try {
+                const formData = {
+                    package_id: `PKG-${Math.random().toString(36).substr(2, 8).toUpperCase()}`,
+                    product_type: document.getElementById('productType').value,
+                    batch_id: document.getElementById('batchId').value || generateBatchId(),
+                    pack_date: document.getElementById('packDate').value,
+                    is_spoiled: document.getElementById('isSpoiled').value === 'true'
+                };
+
+                const response = await fetch('/api/preview-label', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                    statusEl.className = 'status-message status-success';
+                    statusEl.textContent = '✅ Preview opened in new tab';
+                } else {
+                    throw new Error('Failed to generate preview');
+                }
+            } catch (error) {
+                statusEl.className = 'status-message status-error';
+                statusEl.textContent = `❌ Error: ${error.message}`;
+            }
+        }
+
+        // Form submission
+        document.getElementById('labelForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const btn = document.getElementById('generateBtn');
+            const statusEl = document.getElementById('statusMessage');
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Generating...';
+            statusEl.className = 'status-message status-loading';
+            statusEl.innerHTML = '<span class="spinner"></span> Generating labels PDF...';
+
+            try {
+                const formData = {
+                    num_labels: parseInt(document.getElementById('numLabels').value),
+                    product_type: document.getElementById('productType').value,
+                    batch_id: document.getElementById('batchId').value || generateBatchId(),
+                    pack_date: document.getElementById('packDate').value,
+                    is_spoiled: document.getElementById('isSpoiled').value === 'true'
+                };
+
+                const response = await fetch('/api/generate-labels', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    statusEl.className = 'status-message status-success';
+                    statusEl.innerHTML = `
+                        ✅ Successfully generated ${result.labels_generated} labels!<br>
+                        <a href="${result.download_url}" class="download-link" download>
+                            📥 Download PDF
+                        </a>
+                    `;
+
+                    // Auto-download
+                    window.location.href = result.download_url;
+                } else {
+                    throw new Error(result.error || 'Unknown error');
+                }
+            } catch (error) {
+                statusEl.className = 'status-message status-error';
+                statusEl.textContent = `❌ Error: ${error.message}`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>🏷️</span> Generate Labels PDF';
+            }
+        });
+
+        // Update preview on input change
+        document.getElementById('batchId').addEventListener('input', updatePreview);
+        updatePreview();
+    </script>
+</body>
+</html>

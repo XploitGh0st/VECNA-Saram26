@@ -9,7 +9,7 @@ import random
 import time
 
 # API Configuration
-API_URL = "http://127.0.0.1:5000/api/v1/telemetry"
+API_URL = "http://13.214.149.18:5000/api/v1/telemetry"
 
 def generate_sample_payload():
     """Generate a realistic sample telemetry payload for a chicken package container."""

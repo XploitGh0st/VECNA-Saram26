@@ -734,6 +734,17 @@ def seed_demo_data():
         db.session.add(truck)
         db.session.flush()
         
+        # Create ESP32 truck for hardware testing
+        esp32_truck = Truck(
+            gateway_id='TRUCK-ESP32',
+            plate_number='TN-02-CD-5678',
+            driver_name='ESP32 Test Driver',
+            truck_model='ESP32 Reefer Unit',
+            refrigeration_unit='ESP32 Cooling'
+        )
+        db.session.add(esp32_truck)
+        db.session.flush()
+        
         # Create demo trip
         trip = Trip(
             trip_id='TRIP-CHN-BLR-05',

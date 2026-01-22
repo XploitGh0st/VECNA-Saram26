@@ -41,5 +41,10 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')" || exit 1
 
-# Run with gunicorn for production
+# Copy entrypoint script
+COPY --chown=vecna:vecna entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# Run with entrypoint that initializes DB then starts gunicorn
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "4", "--timeout", "120", "app:app"]
