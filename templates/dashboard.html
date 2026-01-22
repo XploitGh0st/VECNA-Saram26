@@ -574,13 +574,18 @@
                 console.log('Dashboard API response:', result);
                 
                 if (result.success && result.data && result.data.length > 0) {
-                    // Find the chicken package trip or use first one
-                    const chickenTrip = result.data.find(d => 
+                    // Sort by timestamp to get the most recent, then find chicken trip or use most recent
+                    const sortedData = result.data.sort((a, b) => 
+                        new Date(b.timestamp || 0) - new Date(a.timestamp || 0)
+                    );
+                    
+                    // Prefer chicken package trip, otherwise use most recent
+                    const chickenTrip = sortedData.find(d => 
                         d.sensors?.some(s => s.node_id?.includes('CHICKEN'))
-                    ) || result.data[0];
+                    ) || sortedData[0];
                     
                     updateDashboard(chickenTrip);
-                    console.log('✓ Dashboard updated from API');
+                    console.log('✓ Dashboard updated from API with trip:', chickenTrip.trip?.trip_id);
                 } else {
                     console.log('No data from API, using last known values');
                 }
