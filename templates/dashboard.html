@@ -424,7 +424,8 @@
             trip: null,
             truck: null,
             gateway_health: null,
-            alerts: null
+            alerts: null,
+            lastReceived: null
         };
         
         // Load persisted data from localStorage on page load
@@ -432,7 +433,7 @@
             const saved = localStorage.getItem('vecna_dashboard_data');
             if (saved) {
                 lastKnownData = JSON.parse(saved);
-                console.log('✓ Loaded persisted dashboard data');
+                console.log('✓ Loaded persisted dashboard data from', lastKnownData.lastReceived);
             }
         } catch (e) {
             console.warn('Could not load persisted data:', e);
@@ -441,12 +442,18 @@
         // Update functions
         function updateDashboard(data) {
             // Merge incoming data with last known values (keep old values if new ones not provided)
-            if (data.sensors && data.sensors.length > 0) lastKnownData.sensors = data.sensors;
-            if (data.location) lastKnownData.location = data.location;
-            if (data.trip) lastKnownData.trip = data.trip;
-            if (data.truck) lastKnownData.truck = data.truck;
-            if (data.gateway_health) lastKnownData.gateway_health = data.gateway_health;
-            if (data.alerts !== undefined) lastKnownData.alerts = data.alerts;
+            let hasNewData = false;
+            if (data.sensors && data.sensors.length > 0) { lastKnownData.sensors = data.sensors; hasNewData = true; }
+            if (data.location && (data.location.lat || data.location.lng)) { lastKnownData.location = data.location; hasNewData = true; }
+            if (data.trip) { lastKnownData.trip = data.trip; hasNewData = true; }
+            if (data.truck) { lastKnownData.truck = data.truck; hasNewData = true; }
+            if (data.gateway_health && data.gateway_health.battery_mv) { lastKnownData.gateway_health = data.gateway_health; hasNewData = true; }
+            if (data.alerts !== undefined) { lastKnownData.alerts = data.alerts; }
+            
+            // Update timestamp if we got new data
+            if (hasNewData) {
+                lastKnownData.lastReceived = new Date().toISOString();
+            }
             
             // Persist to localStorage
             try {
@@ -540,22 +547,42 @@
             }
             
             // Update timestamp
-            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+            if (lastKnownData.lastReceived) {
+                const lastTime = new Date(lastKnownData.lastReceived);
+                document.getElementById('lastUpdate').textContent = lastTime.toLocaleTimeString() + ' (' + getTimeAgo(lastTime) + ')';
+            } else {
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+            }
+        }
+        
+        // Helper to show time ago
+        function getTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            if (seconds < 60) return seconds + 's ago';
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return minutes + 'm ago';
+            const hours = Math.floor(minutes / 60);
+            return hours + 'h ago';
         }
         
         // Fetch data from API
         async function fetchData() {
             try {
+                console.log('Fetching dashboard data...');
                 const response = await fetch('/api/v1/dashboard/summary');
                 const result = await response.json();
+                console.log('Dashboard API response:', result);
                 
-                if (result.success && result.data.length > 0) {
+                if (result.success && result.data && result.data.length > 0) {
                     // Find the chicken package trip or use first one
                     const chickenTrip = result.data.find(d => 
                         d.sensors?.some(s => s.node_id?.includes('CHICKEN'))
                     ) || result.data[0];
                     
                     updateDashboard(chickenTrip);
+                    console.log('✓ Dashboard updated from API');
+                } else {
+                    console.log('No data from API, using last known values');
                 }
             } catch (error) {
                 console.error('Fetch error:', error);
@@ -564,36 +591,58 @@
         
         // Connect to SSE for real-time updates
         function connectSSE() {
+            console.log('Connecting to SSE stream...');
             const eventSource = new EventSource('/api/v1/stream');
+            
+            eventSource.onopen = () => {
+                console.log('✓ SSE connection established');
+            };
             
             eventSource.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
+                    console.log('SSE data received:', data);
+                    
                     if (data.type !== 'connected') {
+                        // Extract location and gateway_health from frame if present
+                        const frameData = data.frame || {};
+                        
                         updateDashboard({
-                            location: data.frame?.location,
-                            gateway_health: data.frame?.gateway_health,
+                            location: frameData.location || data.location,
+                            gateway_health: frameData.gateway_health || data.gateway_health,
                             sensors: data.sensors,
                             alerts: data.alerts,
                             trip: data.trip,
                             truck: data.truck
                         });
+                        console.log('✓ Dashboard updated from SSE');
                     }
                 } catch (e) {
                     console.error('SSE parse error:', e);
                 }
             };
             
-            eventSource.onerror = () => {
+            eventSource.onerror = (e) => {
+                console.error('SSE error:', e);
                 eventSource.close();
+                console.log('Reconnecting SSE in 5 seconds...');
                 setTimeout(connectSSE, 5000);
             };
+        }
+        
+        // Update the time ago display periodically
+        function refreshTimeAgo() {
+            if (lastKnownData.lastReceived) {
+                const lastTime = new Date(lastKnownData.lastReceived);
+                document.getElementById('lastUpdate').textContent = lastTime.toLocaleTimeString() + ' (' + getTimeAgo(lastTime) + ')';
+            }
         }
         
         // Initialize
         fetchData();
         connectSSE();
         setInterval(fetchData, 10000);
+        setInterval(refreshTimeAgo, 5000);  // Update "time ago" every 5 seconds
         
         // Restore last known data on page load
         if (lastKnownData.sensors || lastKnownData.location || lastKnownData.trip) {
