@@ -319,6 +319,14 @@
                         <div class="vital-label"><i class="fas fa-satellite"></i> GPS Sats</div>
                         <div class="vital-value" id="satellites">--</div>
                     </div>
+                    <div class="vital-item">
+                        <div class="vital-label"><i class="fas fa-map-pin"></i> Latitude</div>
+                        <div class="vital-value" id="latitude">--</div>
+                    </div>
+                    <div class="vital-item">
+                        <div class="vital-label"><i class="fas fa-map-pin"></i> Longitude</div>
+                        <div class="vital-value" id="longitude">--</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -409,11 +417,47 @@
         const TEMP_WARNING = 7.0;
         const TEMP_CRITICAL = 10.0;
         
+        // Store last known values to persist data between updates
+        let lastKnownData = {
+            sensors: null,
+            location: null,
+            trip: null,
+            truck: null,
+            gateway_health: null,
+            alerts: null
+        };
+        
+        // Load persisted data from localStorage on page load
+        try {
+            const saved = localStorage.getItem('vecna_dashboard_data');
+            if (saved) {
+                lastKnownData = JSON.parse(saved);
+                console.log('✓ Loaded persisted dashboard data');
+            }
+        } catch (e) {
+            console.warn('Could not load persisted data:', e);
+        }
+        
         // Update functions
         function updateDashboard(data) {
+            // Merge incoming data with last known values (keep old values if new ones not provided)
+            if (data.sensors && data.sensors.length > 0) lastKnownData.sensors = data.sensors;
+            if (data.location) lastKnownData.location = data.location;
+            if (data.trip) lastKnownData.trip = data.trip;
+            if (data.truck) lastKnownData.truck = data.truck;
+            if (data.gateway_health) lastKnownData.gateway_health = data.gateway_health;
+            if (data.alerts !== undefined) lastKnownData.alerts = data.alerts;
+            
+            // Persist to localStorage
+            try {
+                localStorage.setItem('vecna_dashboard_data', JSON.stringify(lastKnownData));
+            } catch (e) {
+                console.warn('Could not persist data:', e);
+            }
+            
             // Update temperature
-            if (data.sensors && data.sensors.length > 0) {
-                const sensor = data.sensors[0];
+            if (lastKnownData.sensors && lastKnownData.sensors.length > 0) {
+                const sensor = lastKnownData.sensors[0];
                 const temp = sensor.temp_c;
                 
                 document.getElementById('sensorId').textContent = sensor.node_id || 'CHICKEN-PKG-001';
@@ -445,33 +489,37 @@
             }
             
             // Update location
-            if (data.location && data.location.lat && data.location.lng) {
-                marker.setLatLng([data.location.lat, data.location.lng]);
-                map.panTo([data.location.lat, data.location.lng]);
-                document.getElementById('speed').textContent = (data.location.speed_kmh?.toFixed(1) || '--') + ' km/h';
-                document.getElementById('satellites').textContent = data.location.satellites || '--';
+            if (lastKnownData.location && lastKnownData.location.lat && lastKnownData.location.lng) {
+                const loc = lastKnownData.location;
+                marker.setLatLng([loc.lat, loc.lng]);
+                map.panTo([loc.lat, loc.lng]);
+                document.getElementById('speed').textContent = (loc.speed_kmh?.toFixed(1) || '--') + ' km/h';
+                document.getElementById('satellites').textContent = loc.satellites || '--';
+                document.getElementById('latitude').textContent = loc.lat?.toFixed(6) || '--';
+                document.getElementById('longitude').textContent = loc.lng?.toFixed(6) || '--';
             }
             
             // Update trip info
-            if (data.trip) {
-                document.getElementById('tripId').textContent = data.trip.trip_id || '--';
-                const origin = data.trip.origin || 'Unknown';
-                const dest = data.trip.destination || 'Unknown';
+            if (lastKnownData.trip) {
+                document.getElementById('tripId').textContent = lastKnownData.trip.trip_id || '--';
+                const origin = lastKnownData.trip.origin || 'Unknown';
+                const dest = lastKnownData.trip.destination || 'Unknown';
                 document.getElementById('route').textContent = origin + ' → ' + dest;
             }
             
             // Update vehicle info
-            if (data.truck) {
-                document.getElementById('vehicle').textContent = data.truck.plate_number || data.truck.gateway_id || '--';
+            if (lastKnownData.truck) {
+                document.getElementById('vehicle').textContent = lastKnownData.truck.plate_number || lastKnownData.truck.gateway_id || '--';
             }
             
             // Update gateway vitals
-            if (data.gateway_health) {
-                document.getElementById('gwBattery').textContent = (data.gateway_health.battery_mv || '--') + ' mV';
-                document.getElementById('gwSignal').textContent = (data.gateway_health.signal_strength_dbm || '--') + ' dBm';
-                document.getElementById('gwCpu').textContent = (data.gateway_health.cpu_temp_c?.toFixed(1) || '--') + ' °C';
+            if (lastKnownData.gateway_health) {
+                const gh = lastKnownData.gateway_health;
+                document.getElementById('gwBattery').textContent = (gh.battery_mv || '--') + ' mV';
+                document.getElementById('gwSignal').textContent = (gh.signal_strength_dbm || '--') + ' dBm';
+                document.getElementById('gwCpu').textContent = (gh.cpu_temp_c?.toFixed(1) || '--') + ' °C';
                 
-                const uptime = data.gateway_health.uptime_seconds;
+                const uptime = gh.uptime_seconds;
                 if (uptime) {
                     const hours = Math.floor(uptime / 3600);
                     const mins = Math.floor((uptime % 3600) / 60);
@@ -481,8 +529,8 @@
             
             // Update alerts
             const alertsList = document.getElementById('alertsList');
-            if (data.alerts && data.alerts.length > 0) {
-                alertsList.innerHTML = data.alerts.map(a => 
+            if (lastKnownData.alerts && lastKnownData.alerts.length > 0) {
+                alertsList.innerHTML = lastKnownData.alerts.map(a => 
                     '<div class="alert-item ' + (a.severity === 'CRITICAL' ? 'critical' : '') + '">' +
                     '<div class="alert-message">' + a.message + '</div>' +
                     '</div>'
@@ -546,6 +594,12 @@
         fetchData();
         connectSSE();
         setInterval(fetchData, 10000);
+        
+        // Restore last known data on page load
+        if (lastKnownData.sensors || lastKnownData.location || lastKnownData.trip) {
+            updateDashboard({});
+            console.log('✓ Restored last known dashboard values');
+        }
         
         console.log('✓ VECNA Dashboard loaded');
     </script>
